@@ -488,7 +488,12 @@ bool SMTTransformer::generateMPSFile(const std::string& filename) const {
     // 为每个变量生成列
     for (const auto& var : variables_) {
         // 目标函数系数（0表示可行性问题）
-        file << "    " << var.name << "  OBJ       0\n";
+        // 整数/二进制标记
+        if (var.type == VariableType::INTEGER || var.type == VariableType::BINARY) {
+            file << "    MARK0001  'MARKER'                 'INTORG'\n";
+            file << "    " << var.name << "  OBJ       0\n";
+            file << "    MARK0001  'MARKER'                 'INTEND'\n";
+        }
         
         // 约束系数
         for (size_t i = 0; i < linear_constraints_.size(); ++i) {
@@ -507,12 +512,6 @@ bool SMTTransformer::generateMPSFile(const std::string& filename) const {
             }
         }
         
-        // 整数/二进制标记
-        if (var.type == VariableType::INTEGER || var.type == VariableType::BINARY) {
-            file << "    MARK0001  'MARKER'                 'INTORG'\n";
-            file << "    " << var.name << "  OBJ       0\n";
-            file << "    MARK0001  'MARKER'                 'INTEND'\n";
-        }
     }
     
     // RHS部分
