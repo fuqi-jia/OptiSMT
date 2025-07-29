@@ -47,8 +47,8 @@ namespace OptiSMT {
         bool processNode(NodePtr node);
         bool processOrNode(NodePtr node);
         bool processLinearConstraint(NodePtr node);
-        bool extractLinearTerms(NodePtr node, std::vector<LinearTerm>& terms, double& constant);
-        bool extractLinearExpression(NodePtr node, std::vector<LinearTerm>& terms, double& constant);
+        bool extractLinearTerms(NodePtr node, std::vector<LinearTerm>& terms, SMTParser::Number& constant);
+        bool extractLinearExpression(NodePtr node, std::vector<LinearTerm>& terms, SMTParser::Number& constant);
         
         // 变量管理
         std::string addVariable(const std::string& name, VariableType type);
@@ -56,7 +56,7 @@ namespace OptiSMT {
         
         // 约束转换
         ConstraintType getConstraintType(NodePtr node);
-        void addLinearConstraint(const std::vector<LinearTerm>& terms, ConstraintType type, double rhs);
+        void addLinearConstraint(const std::vector<LinearTerm>& terms, ConstraintType type, SMTParser::Number rhs);
         
         // BigM转换
         void transformOrConstraint(const OrConstraint& or_constraint);

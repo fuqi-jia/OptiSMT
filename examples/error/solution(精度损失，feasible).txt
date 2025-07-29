@@ -1,0 +1,14 @@
+Columns
+    Index Status        Lower        Upper       Primal         Dual  Type        Name
+        0                -inf          inf          187               Integer     x
+        1                -inf          inf          216               Integer     y
+Rows
+    Index Status        Lower        Upper       Primal         Dual  Name
+        0                -inf        1e+09        1e+09               c0
+        1                -inf           -1       -1e+09               c1
+        2                -inf           -0       -1e+09               c2
+        3                -inf        1e+09        1e+09               c3
+
+Model status: Optimal
+
+Objective value: 0

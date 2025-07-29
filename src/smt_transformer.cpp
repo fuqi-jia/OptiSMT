@@ -95,7 +95,7 @@ bool SMTTransformer::processOrNode(NodePtr node) {
         auto child = node->getChild(i);
         
         std::vector<LinearTerm> terms;
-        double constant = 0.0;
+        SMTParser::Number constant = 0.0;
         
         if (!extractLinearTerms(child, terms, constant)) {
             std::cerr << "警告：无法提取线性项从OR子句" << std::endl;
@@ -118,7 +118,7 @@ bool SMTTransformer::processOrNode(NodePtr node) {
 
 bool SMTTransformer::processLinearConstraint(NodePtr node) {
     std::vector<LinearTerm> terms;
-    double constant = 0.0;
+    SMTParser::Number constant = 0.0;
     
     if (!extractLinearTerms(node, terms, constant)) {
         return false;
@@ -130,7 +130,7 @@ bool SMTTransformer::processLinearConstraint(NodePtr node) {
     return true;
 }
 
-bool SMTTransformer::extractLinearTerms(NodePtr node, std::vector<LinearTerm>& terms, double& constant) {
+bool SMTTransformer::extractLinearTerms(NodePtr node, std::vector<LinearTerm>& terms, SMTParser::Number& constant) {
     if (!node) return false;
     
     auto kind = node->getKind();
@@ -147,14 +147,14 @@ bool SMTTransformer::extractLinearTerms(NodePtr node, std::vector<LinearTerm>& t
         
         // 提取左侧
         std::vector<LinearTerm> left_terms;
-        double left_constant = 0.0;
+        SMTParser::Number left_constant = 0.0;
         if (!extractLinearExpression(left, left_terms, left_constant)) {
             return false;
         }
         
         // 提取右侧
         std::vector<LinearTerm> right_terms;
-        double right_constant = 0.0;
+        SMTParser::Number right_constant = 0.0;
         if (!extractLinearExpression(right, right_terms, right_constant)) {
             return false;
         }
@@ -172,17 +172,17 @@ bool SMTTransformer::extractLinearTerms(NodePtr node, std::vector<LinearTerm>& t
     return false;
 }
 
-bool SMTTransformer::extractLinearExpression(NodePtr node, std::vector<LinearTerm>& terms, double& constant) {
+bool SMTTransformer::extractLinearExpression(NodePtr node, std::vector<LinearTerm>& terms, SMTParser::Number& constant) {
     if (!node) return false;
     
     // 常数
     if (node->isCInt()) {
-        constant += node->getValue()->getNumberValue().toInteger().toDouble();
+        constant += node->getValue()->getNumberValue();
         return true;
     }
     
     if (node->isCReal()) {
-        constant += node->getValue()->getNumberValue().toReal().toDouble();
+        constant += node->getValue()->getNumberValue();
         return true;
     }
     
@@ -207,7 +207,7 @@ bool SMTTransformer::extractLinearExpression(NodePtr node, std::vector<LinearTer
         if (node->getChildrenSize() == 1) {
             // 一元负号
             std::vector<LinearTerm> sub_terms;
-            double sub_constant = 0.0;
+            SMTParser::Number sub_constant = 0.0;
             if (!extractLinearExpression(node->getChild(0), sub_terms, sub_constant)) {
                 return false;
             }
@@ -222,7 +222,7 @@ bool SMTTransformer::extractLinearExpression(NodePtr node, std::vector<LinearTer
                 return false;
             }
             std::vector<LinearTerm> sub_terms;
-            double sub_constant = 0.0;
+            SMTParser::Number sub_constant = 0.0;
             if (!extractLinearExpression(node->getChild(1), sub_terms, sub_constant)) {
                 return false;
             }
@@ -244,8 +244,8 @@ bool SMTTransformer::extractLinearExpression(NodePtr node, std::vector<LinearTer
              left->isCReal()) && 
              right->isVar()) {
             
-            double coeff = left->isCInt() ? 
-                          left->getValue()->getNumberValue().toInteger().toDouble() : left->getValue()->getNumberValue().toReal().toDouble();
+            SMTParser::Number coeff = left->isCInt() ? 
+                          left->getValue()->getNumberValue() : left->getValue()->getNumberValue();
             terms.emplace_back(coeff, right->getName());
             return true;
         }
@@ -255,8 +255,8 @@ bool SMTTransformer::extractLinearExpression(NodePtr node, std::vector<LinearTer
              right->isCReal()) && 
              left->isVar()) {
             
-            double coeff = right->isCInt() ? 
-                          right->getValue()->getNumberValue().toInteger().toDouble() : right->getValue()->getNumberValue().toReal().toDouble();
+            SMTParser::Number coeff = right->isCInt() ? 
+                          right->getValue()->getNumberValue() : right->getValue()->getNumberValue();
             terms.emplace_back(coeff, left->getName());
             return true;
         }
@@ -294,7 +294,7 @@ std::string SMTTransformer::generateAuxVariable() {
     return "aux_" + std::to_string(aux_var_counter_++);
 }
 
-void SMTTransformer::addLinearConstraint(const std::vector<LinearTerm>& terms, ConstraintType type, double rhs) {
+void SMTTransformer::addLinearConstraint(const std::vector<LinearTerm>& terms, ConstraintType type, SMTParser::Number rhs) {
     LinearConstraint constraint(type, rhs);
     for (const auto& term : terms) {
         constraint.addTerm(term.coefficient, term.variable);
@@ -494,7 +494,7 @@ bool SMTTransformer::generateMPSFile(const std::string& filename) const {
         for (size_t i = 0; i < linear_constraints_.size(); ++i) {
             const auto& constraint = linear_constraints_[i];
             
-            double coeff = 0.0;
+            SMTParser::Number coeff = 0.0;
             for (const auto& term : constraint.terms) {
                 if (term.variable == var.name) {
                     coeff = term.coefficient;
@@ -502,8 +502,8 @@ bool SMTTransformer::generateMPSFile(const std::string& filename) const {
                 }
             }
             
-            if (std::abs(coeff) > 1e-10) {  // 非零系数
-                file << "    " << var.name << "  C" << i << "       " << coeff << "\n";
+            if (coeff.abs() > 1e-10) {  // 非零系数
+                file << "    " << var.name << "  C" << i << "       " << coeff.toString() << "\n";
             }
         }
         
@@ -519,7 +519,7 @@ bool SMTTransformer::generateMPSFile(const std::string& filename) const {
     file << "RHS\n";
     for (size_t i = 0; i < linear_constraints_.size(); ++i) {
         const auto& constraint = linear_constraints_[i];
-        file << "    RHS1      C" << i << "       " << constraint.rhs << "\n";
+        file << "    RHS1      C" << i << "       " << constraint.rhs.toString() << "\n";
     }
     
     // BOUNDS部分
@@ -557,22 +557,22 @@ std::string SMTTransformer::formatLinearConstraint(const LinearConstraint& const
                 oss << " + ";
             } else {
                 oss << " - ";
-                oss << std::abs(term.coefficient) << " " << term.variable;
+                oss << term.coefficient.abs().toString() << " " << term.variable;
                 continue;
             }
         } else {
             if (term.coefficient < 0) {
                 oss << "- ";
-                oss << std::abs(term.coefficient) << " " << term.variable;
+                oss << term.coefficient.abs().toString() << " " << term.variable;
                 first = false;
                 continue;
             }
         }
         
-        if (std::abs(term.coefficient - 1.0) < 1e-10) {
+        if (term.coefficient.abs() < 1 + 1e-10) {
             oss << term.variable;
         } else {
-            oss << term.coefficient << " " << term.variable;
+            oss << term.coefficient.toString() << " " << term.variable;
         }
         first = false;
     }
@@ -580,13 +580,13 @@ std::string SMTTransformer::formatLinearConstraint(const LinearConstraint& const
     // 约束类型和右端值
     switch (constraint.type) {
         case ConstraintType::LINEAR_EQ:
-            oss << " = " << constraint.rhs;
+            oss << " = " << constraint.rhs.toString();
             break;
         case ConstraintType::LINEAR_LE:
-            oss << " <= " << constraint.rhs;
+            oss << " <= " << constraint.rhs.toString();
             break;
         case ConstraintType::LINEAR_GE:
-            oss << " >= " << constraint.rhs;
+            oss << " >= " << constraint.rhs.toString();
             break;
     }
     

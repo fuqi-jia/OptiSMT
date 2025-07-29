@@ -44,10 +44,10 @@ namespace OptiSMT {
     
     // 线性项: 系数 * 变量
     struct LinearTerm {
-        double coefficient;
+        SMTParser::Number coefficient;
         std::string variable;
         
-        LinearTerm(double coeff, const std::string& var) 
+        LinearTerm(SMTParser::Number coeff, const std::string& var) 
             : coefficient(coeff), variable(var) {}
     };
     
@@ -55,11 +55,11 @@ namespace OptiSMT {
     struct LinearConstraint {
         std::vector<LinearTerm> terms;
         ConstraintType type;
-        double rhs;  // 右侧常数
+        SMTParser::Number rhs;  // 右侧常数
         
-        LinearConstraint(ConstraintType t, double r) : type(t), rhs(r) {}
+        LinearConstraint(ConstraintType t, SMTParser::Number r) : type(t), rhs(r) {}
         
-        void addTerm(double coeff, const std::string& var) {
+        void addTerm(SMTParser::Number coeff, const std::string& var) {
             terms.emplace_back(coeff, var);
         }
     };
