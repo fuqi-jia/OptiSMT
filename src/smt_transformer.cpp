@@ -337,10 +337,12 @@ void SMTTransformer::transformOrConstraint(const OrConstraint& or_constraint) {
         const auto& clause = or_constraint.clauses[i];
         const std::string& ind_var = indicator_vars[i];
         
-        // 创建BigM约束：原约束 + M*(1-indicator) >= 0
-        // 即：原约束 >= M*indicator - M
+        // BigM: Ax>=B -> Ax+M*(1-indicator)>=B -> Ax-M*indicator>=B-M
+        // Ax<=B -> Ax-M*(1-indicator)<=B -> Ax+M*indicator<=B+M
+
+        int flag = (clause.type==OptiSMT::ConstraintType::LINEAR_LE)? 1 : -1;
         
-        LinearConstraint big_m_constraint(clause.type, clause.rhs - big_m_value_);
+        LinearConstraint big_m_constraint(clause.type, clause.rhs + flag * big_m_value_);
         
         // 添加原约束的项
         for (const auto& term : clause.terms) {
@@ -348,7 +350,7 @@ void SMTTransformer::transformOrConstraint(const OrConstraint& or_constraint) {
         }
         
         // 添加BigM项
-        big_m_constraint.addTerm(big_m_value_, ind_var);
+        big_m_constraint.addTerm(flag * big_m_value_, ind_var);
         
         linear_constraints_.push_back(big_m_constraint);
     }
