@@ -9,6 +9,7 @@ bool SMTTransformer::transformSMTFile(const std::string& filename) {
     
     // 创建parser并解析文件
     auto parser = SMTParser::newParser();
+    parser->setOption("keep_let", false);
     if (!parser->parse(filename)) {
         std::cerr << "错误：无法解析SMT文件" << std::endl;
         return false;
