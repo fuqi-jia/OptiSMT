@@ -53,9 +53,11 @@ bool SMTTransformer::transformSMTConstraints(ParserPtr parser) {
     
     // 处理每个约束
     for (auto assertion : assertions) {
-        if (!assertion) continue;
+        if(!assertion) continue;
+        auto nnf = parser->toNNF(assertion);
+        if (!nnf) continue;
         
-        if (!processNode(assertion)) {
+        if (!processNode(nnf)) {
             std::cerr << "警告：无法处理某个约束" << std::endl;
         }
     }
