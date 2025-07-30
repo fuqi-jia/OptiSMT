@@ -2,6 +2,7 @@
 #include <fstream>
 #include <iostream>
 #include <cassert>
+#define epsilon 1e-8
 
 namespace OptiSMT {
 
@@ -160,43 +161,18 @@ bool SMTTransformer::extractLinearTerms(NodePtr node, std::vector<LinearTerm>& t
             return false;
         }
         
-        if(node->isLe() || node->isEq()){
             // left <= right -> left - right <= 0
             // 移动到左侧: left - right <= 0
-            terms = left_terms;
-            for (const auto& term : right_terms) {
+        terms = left_terms;
+        for (const auto& term : right_terms) {
                 terms.emplace_back(-term.coefficient, term.variable);
             }
-            constant = left_constant - right_constant;
+        constant = left_constant - right_constant;
+        if(node->isLt()){
+            constant = constant + epsilon;
         }
-        else if(node->isGe()){
-            // left >= right -> right - left <= 0
-            // 移动到左侧: right - left <= 0
-            terms = right_terms;
-            for (const auto& term : left_terms) {
-                terms.emplace_back(-term.coefficient, term.variable);
-            }
-            constant = right_constant - left_constant;
-        }
-        else if(node->isLt()){
-            // DYC TODO
-            // left < right -> left - right < 0
-            // 移动到左侧: left - right < 0
-            terms = left_terms;
-            for (const auto& term : right_terms) {
-                terms.emplace_back(-term.coefficient, term.variable);
-            }
-            constant = left_constant - right_constant;
-        }
-        else if(node->isGt()){
-            // DYC TODO
-            // left > right -> right - left < 0
-            // 移动到左侧: right - left < 0
-            terms = right_terms;
-            for (const auto& term : left_terms) {
-                terms.emplace_back(-term.coefficient, term.variable);
-            }
-            constant = right_constant - left_constant;
+        if(node->isGt()){
+            constant = constant - epsilon;
         }
         else assert(false);
         return true;
