@@ -1,6 +1,7 @@
 #include "smt_transformer.h"
 #include <fstream>
 #include <iostream>
+#include <cassert>
 
 namespace OptiSMT {
 
@@ -138,9 +139,7 @@ bool SMTTransformer::extractLinearTerms(NodePtr node, std::vector<LinearTerm>& t
     auto kind = node->getKind();
     
     // 处理比较操作
-    if (kind == SMTParser::NODE_KIND::NT_LE || kind == SMTParser::NODE_KIND::NT_LT || 
-        kind == SMTParser::NODE_KIND::NT_GE || kind == SMTParser::NODE_KIND::NT_GT || 
-        kind == SMTParser::NODE_KIND::NT_EQ) {
+    if (node->isLe() || node->isGe() || node->isEq() || node->isLt() || node->isGt()){
         
         if (node->getChildrenSize() != 2) return false;
         
@@ -161,13 +160,45 @@ bool SMTTransformer::extractLinearTerms(NodePtr node, std::vector<LinearTerm>& t
             return false;
         }
         
-        // 移动到左侧: left - right <= 0
-        terms = left_terms;
-        for (const auto& term : right_terms) {
-            terms.emplace_back(-term.coefficient, term.variable);
+        if(node->isLe() || node->isEq()){
+            // left <= right -> left - right <= 0
+            // 移动到左侧: left - right <= 0
+            terms = left_terms;
+            for (const auto& term : right_terms) {
+                terms.emplace_back(-term.coefficient, term.variable);
+            }
+            constant = left_constant - right_constant;
         }
-        constant = left_constant - right_constant;
-        
+        else if(node->isGe()){
+            // left >= right -> right - left <= 0
+            // 移动到左侧: right - left <= 0
+            terms = right_terms;
+            for (const auto& term : left_terms) {
+                terms.emplace_back(-term.coefficient, term.variable);
+            }
+            constant = right_constant - left_constant;
+        }
+        else if(node->isLt()){
+            // DYC TODO
+            // left < right -> left - right < 0
+            // 移动到左侧: left - right < 0
+            terms = left_terms;
+            for (const auto& term : right_terms) {
+                terms.emplace_back(-term.coefficient, term.variable);
+            }
+            constant = left_constant - right_constant;
+        }
+        else if(node->isGt()){
+            // DYC TODO
+            // left > right -> right - left < 0
+            // 移动到左侧: right - left < 0
+            terms = right_terms;
+            for (const auto& term : left_terms) {
+                terms.emplace_back(-term.coefficient, term.variable);
+            }
+            constant = right_constant - left_constant;
+        }
+        else assert(false);
         return true;
     }
     
