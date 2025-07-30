@@ -161,8 +161,8 @@ bool SMTTransformer::extractLinearTerms(NodePtr node, std::vector<LinearTerm>& t
             return false;
         }
         
-            // left <= right -> left - right <= 0
-            // 移动到左侧: left - right <= 0
+        // left <= right -> left - right <= 0
+        // 移动到左侧: left - right <= 0
         terms = left_terms;
         for (const auto& term : right_terms) {
             terms.emplace_back(-term.coefficient, term.variable);
