@@ -10,6 +10,7 @@ bool SMTTransformer::transformSMTFile(const std::string& filename) {
     // 创建parser并解析文件
     auto parser = SMTParser::newParser();
     parser->setOption("keep_let", false);
+    
     if (!parser->parse(filename)) {
         std::cerr << "错误：无法解析SMT文件" << std::endl;
         return false;
@@ -193,6 +194,26 @@ bool SMTTransformer::extractLinearExpression(NodePtr node, std::vector<LinearTer
         return true;
     }
     
+    // 一元负号
+    if (node->isNeg()) {
+        if (node->getChildrenSize() != 1) {
+            return false;
+        }
+        
+        std::vector<LinearTerm> neg_terms;
+        SMTParser::Number neg_constant = 0.0;
+        if (!extractLinearExpression(node->getChild(0), neg_terms, neg_constant)) {
+            return false;
+        }
+        
+        // 添加负号的项
+        for (const auto& term : neg_terms) {
+            terms.emplace_back(-term.coefficient, term.variable);
+        }
+        constant -= neg_constant;
+        return true;
+    }
+    
     // 加法
     if (node->isAdd()) {
         for (size_t i = 0; i < node->getChildrenSize(); ++i) {
@@ -237,6 +258,10 @@ bool SMTTransformer::extractLinearExpression(NodePtr node, std::vector<LinearTer
     
     // 乘法（仅支持常数 * 变量）
     if (node->isMul()) {
+        if (node->getChildrenSize() != 2) {
+            return false;
+        }
+        
         auto left = node->getChild(0);
         auto right = node->getChild(1);
         
